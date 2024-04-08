@@ -5,7 +5,7 @@ account: vaibhavbansal
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 11687713
-bundleId: 8464829
+bundleId: 8468497
 url: https://vaibhavbansal.shinyapps.io/sdmproject/
 version: 1
 asMultiple: FALSE

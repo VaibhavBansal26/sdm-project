@@ -23,7 +23,7 @@ library(dbplyr)
 
 
 # Connect to your SQLite database
-sqldb_connection <- dbConnect(RSQLite::SQLite(), 'data/sdm_netflix.sqlite')
+sqldb_connection <- dbConnect(RSQLite::SQLite(), 'data/customer_sales_db.sqlite')
 
 # Define the UI
 ui <- dashboardPage(
@@ -74,7 +74,7 @@ ui <- dashboardPage(
 server <- function(input, output) { 
   # Data View
   output$dataView <- DT::renderDataTable({
-    query <- sprintf("SELECT * FROM netflix")
+    query <- sprintf("SELECT * FROM customer_sales_data")
     data <- dbGetQuery(sqldb_connection, query)
     DT::datatable(data)
   })
@@ -91,7 +91,7 @@ server <- function(input, output) {
           paste("data-", Sys.Date(), ".csv", sep = "")
         },
         content = function(file) {
-          query <- "SELECT * FROM netflix"
+          query <- "SELECT * FROM customer_sales_data"
           data <- dbGetQuery(sqldb_connection, query)
           write.csv(data, file, row.names = FALSE)
         }
@@ -100,3 +100,5 @@ server <- function(input, output) {
 
 # Run the application
 shinyApp(ui, server)
+
+
