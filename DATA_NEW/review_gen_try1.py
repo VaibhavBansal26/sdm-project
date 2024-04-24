@@ -30,60 +30,139 @@ import pandas as pd
 # def safe_sample(word_list, sample_size):
 #     return random.sample(word_list, min(sample_size, len(word_list)))
 
+
 def random_start(sentiment):
     starters = {
-        'positive': ["I absolutely love", "I'm thrilled with", "What a fantastic", "I'm pleased with",
-                     "I'm so excited about", "Couldn’t be happier with", "So glad I chose"],
-        'negative': ["I'm disappointed with", "What a terrible", "I'm unsatisfied with", "I'm frustrated with",
-                     "I regret buying", "Wouldn’t recommend", "Completely let down by"],
-        'neutral': ["It's okay", "This is a standard", "What an average", "It's mediocre", "This is a typical"]
+        'positive': [
+            "I absolutely love", "I'm thrilled with", "What a fantastic", "I'm pleased with",
+            "I'm so excited about", "Couldn’t be happier with", "So glad I chose", "I highly recommend",
+            "What a delightful", "I'm overjoyed with", "It's a total game-changer", "An excellent",
+            "Simply amazing", "Truly outstanding", "Exceeds my expectations", "I'm enamored with",
+            "It's perfection", "A stellar", "Top-notch", "A winner in my book"
+        ],
+        'negative': [
+            "I'm disappointed with", "What a terrible", "I'm unsatisfied with", "I'm frustrated with",
+            "I regret buying", "Wouldn’t recommend", "Completely let down by", "I'm dismayed by",
+            "It's an unfortunate", "I'm underwhelmed by", "Not what I expected from", "A poor",
+            "Terribly dissatisfied with", "Such a disappointment", "Leaves much to be desired",
+            "A big thumbs down", "Sadly unimpressive", "Missed the mark", "Falls short of expectations",
+            "A letdown"
+        ],
+        'neutral': [
+            "It's okay", "This is a standard", "What an average", "It's mediocre",
+            "This is a typical", "Nothing special about this", "An ordinary", "It's passable",
+            "A run-of-the-mill", "This is fairly routine", "It's neither good nor bad", "A middling",
+            "Middle of the road", "Not bad but not great", "Decidedly average", "Ordinarily acceptable",
+            "It's fair", "Mediocre at best", "Barely meets the standards", "Neither here nor there"
+        ]
     }
     return random.choice(starters[sentiment])
 
 
+
 def random_adjective(sentiment):
     adjectives = {
-        'positive': ["gorgeous", "stunning", "delicate", "elegant", "solid", "durable", "lightweight", "charming", "versatile", "trendy", "sparkly", "classic", "modern", "sleek"],
-        'negative': ["disappointing", "flimsy", "chunky", "clunky"],
-        'neutral': ["casual", "standard", "typical", "common"]
+        'positive': [
+            "gorgeous", "stunning", "delicate", "elegant", "solid", "durable",
+            "lightweight", "charming", "versatile", "trendy", "sparkly", "classic",
+            "modern", "sleek", "exquisite", "premium", "top-quality", "impeccable",
+            "exceptional", "innovative", "remarkable", "peerless", "superb", "magnificent"
+        ],
+        'negative': [
+            "disappointing", "flimsy", "chunky", "clunky", "inferior", "subpar",
+            "mediocre", "unreliable", "lackluster", "dismal", "second-rate",
+            "unsatisfactory", "deficient", "faulty", "shoddy", "poorly made",
+            "substandard", "inadequate", "unsound", "flawed"
+        ],
+        'neutral': [
+            "casual", "standard", "typical", "common", "basic", "average", "plain",
+            "simple", "unremarkable", "ordinary", "run-of-the-mill", "standard-issue",
+            "garden-variety", "everyday", "no-frills", "undistinguished", "normal",
+            "regular", "generic", "unexceptional", "workaday"
+        ]
     }
-    return random.choice(adjectives[sentiment])    
+    return random.choice(adjectives[sentiment])
 
 def random_verb(sentiment):
     verbs = {
-        'positive': ["impressed", "satisfied", "in love", "happy", "thrilled", "surprised", "pleased", "excited"],
-        'negative': ["disappointed", "regretting"],
-        'neutral': ["considering", "contemplating"]  # Neutral verbs are a bit trickier and might depend on context
+        'positive': [
+            "impressed", "satisfied", "in love with", "happy about", "thrilled by", "surprised by", 
+            "pleased with", "excited about", "enchanted by", "fascinated with", "delighted by", 
+            "enamored with", "overjoyed with", "ecstatic about", "amazed by", "gratified by", 
+            "rejoicing over", "enthralled by", "raving about", "upbeat about"
+        ],
+        'negative': [
+            "disappointed with", "regretting", "dissatisfied with", "unhappy about", "displeased with", 
+            "frustrated by", "upset with", "disgruntled about", "angered by", "annoyed with", 
+            "disenchanted with", "distressed about", "discontent with", "let down by", 
+            "dismayed by", "disheartened by", "resentful of", "disgusted with", "irked by", "repelled by"
+        ],
+        'neutral': [
+            "considering", "contemplating", "evaluating", "examining", "observing", "noting", 
+            "acknowledging", "recognizing", "seeing", "witnessing", "perceiving", "discerning", 
+            "aware of", "regarding", "viewing", "watching", "inspecting", "studying", "assessing", "surveying"
+        ]
     }
     return random.choice(verbs[sentiment])
 
+
 def random_timeframe():
-    timeframes = ["the first day", "a couple of weeks", "months", "the moment I saw it", "the first time I wore it out", "after several uses", "long-term"]
+    timeframes = [
+        "the first day", "a couple of weeks", "months", "the moment I saw it", 
+        "the first time I wore it out", "after several uses", "long-term", 
+        "right out of the box", "within the first few hours", "over the weekend", 
+        "during my first experience with it", "after repeated use", "in the initial phase", 
+        "within days", "from day one", "over the course of use", "right after setup", 
+        "as soon as I started using it", "throughout my time with it", "from the get-go", 
+        "within the first month", "after the honeymoon period", "over several months", 
+        "since the beginning", "in the short-term", "after the first charge", "straight away",
+        "after the first use", "from the onset", "in the first week"
+    ]
     return random.choice(timeframes)
 
 def random_phrase():
-    phrases = ["for the price", "given the hype", "considering the reviews", "for a piece like this", "for such a reputed brand", "compared to other items I’ve purchased"]
+    phrases = [
+        "for the price", "given the hype", "considering the reviews", "for a piece like this", 
+        "for such a reputed brand", "compared to other items I’ve purchased", "in this category",
+        "with these features", "in its class", "on the market", "for the quality provided", 
+        "with such functionality", "from what I've experienced", "based on my experience", 
+        "for the craftsmanship", "for the convenience", "in terms of usability", "when it comes to durability",
+        "in this design", "as far as performance goes", "looking at the specs", "when you factor in the warranty",
+        "considering the material", "judging by the build", "taking into account the technology", 
+        "when it comes to the feature set", "for the level of innovation", "with this level of support", 
+        "from an aesthetic standpoint", "when evaluating the eco-friendliness", "in the realm of efficiency",
+        "with respect to user-friendliness", "in regard to portability", "concerning the battery life",
+        "for its size"
+    ]
     return random.choice(phrases)
-
-
 
 
 def random_experience(sentiment):
     experiences = {
-        'positive': ["looks great", "holds up well", "feels comfortable", "gets compliments"],
-        'negative': ["seems off", "disappoints"],
-        'neutral': ["is functional", "serves its purpose"]  # Added neutral experiences
+        'positive': [
+            "looks great", "holds up well", "feels comfortable", "gets compliments",
+            "exceeds expectations", "performs beautifully", "is a joy to use", "wins my heart",
+            "makes life easier", "proves its worth", "delivers outstanding results",
+            "is top of the line", "offers exceptional comfort", "attracts positive attention",
+            "is a game changer", "brings satisfaction every day", "is built to last",
+            "continues to impress", "remains reliable", "shines above the rest"
+        ],
+        'negative': [
+            "seems off", "disappoints", "falls short", "fails to deliver", "lacks durability",
+            "misses the mark", "underperforms", "is problematic", "suffers from issues",
+            "leaves much to be desired", "is difficult to use", "comes up short", "is overpriced",
+            "doesn't meet expectations", "wears out quickly", "breaks down often",
+            "is uncomfortable", "has poor customer service", "loses value quickly", "is a hassle"
+        ],
+        'neutral': [
+            "is functional", "serves its purpose", "does the job", "performs adequately",
+            "meets basic standards", "is average", "functions as expected", "is passable",
+            "performs as advertised", "holds its own", "is nothing special", "is unremarkable",
+            "gets the job done", "is decent", "is moderately effective", "provides basic functionality",
+            "meets minimal requirements", "is straightforward", "maintains a standard", "is utilitarian"
+        ]
     }
     return random.choice(experiences[sentiment])
-
-def random_end_phrase(sentiment):
-    end_phrases = {
-        'positive': ["Can't wait to show it off!", "5 stars from me!", "Definitely a must-buy!"],
-        'negative': ["Such a bummer.", "I wouldn't recommend it.", "I wouldn’t buy this again."],
-        'neutral': ["It's pretty much what I expected.", "Not bad, not great."]  # Added neutral end phrases
-    }
-    return random.choice(end_phrases[sentiment])
-
 
 
 def random_end(sentiment):
@@ -121,15 +200,15 @@ def random_end(sentiment):
     }
     return random.choice(end[sentiment])
 
-def create_varied_length_review(product,sentiment):
+def create_varied_length_review(product):
     # Choose whether to include certain parts of the review for variety
-   
+    sentiment=random.choice(["positive","negative","neutral"])
     review_parts = [
         f"{random_start(sentiment)} {product}." if random.random() < 0.75 else "",
         f"This {product} is {random_adjective(sentiment)}." if random.random() < 0.75 else "",
         f"I'm {random_verb(sentiment)} with it, especially {random_phrase()}." if random.random() < 0.50 else "",
         f"It's been {random_timeframe()} and it still {random_experience(sentiment)}." if random.random() < 0.5 else "",
-        f"{random_end_phrase(sentiment)}" if random.random() < 0.75 else ""
+        f"{random_end(sentiment)}" if random.random() < 0.75 else ""
     ]
     # Combine the parts into a single review, skipping any empty strings
     review = ' '.join(filter(None, review_parts))
@@ -137,7 +216,7 @@ def create_varied_length_review(product,sentiment):
 
 # Generate 20 varied-length reviews
 product_description="SILVER LARIAT 40CM"
-varied_length_reviews = [create_varied_length_review(product_description,random.choice(["positive","negative","neutral"])) for _ in range(20)]
+varied_length_reviews = [create_varied_length_review(product_description) for _ in range(20)]
 for x in varied_length_reviews:
      print(x)
 	
