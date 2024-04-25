@@ -333,6 +333,8 @@ ui <- dashboardPage(
                   )
               ),
               div(class="box",
+                  img(src="https://www.buffalo.edu/content/shared/www/ai-data-science/faculty/liu-jianzhen-jason/jcr:content/profileinfo.img.280.280.z.q65.jpg/1703259598182.jpg", class="profile-img"),
+                     
                   h2("About Our Professor"),
                   p("Professor Jianzhen Liu  is an esteemed figure in data science with extensive experience in both academia and industry."),
                   p("He is known for his methodical approach to teaching and his commitment to student success."),
