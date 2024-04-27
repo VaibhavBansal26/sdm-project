@@ -1,0 +1,187 @@
+
+
+```{r}
+# Data manipulation
+library(dplyr)
+library(data.table)
+
+# Data visualization
+library(ggplot2)
+library(lattice)
+library(RColorBrewer)
+
+# Date and time
+library(lubridate)
+
+# Text processing
+install.packages("tm")
+library(tm)
+install.packages("SnowballC")
+library(SnowballC)
+
+install.packages("wordcloud")
+install.packages("caret")
+install.packages("cluster")
+install.packages("factoextra")
+install.packages("plotly")
+library(wordcloud)
+
+# Machine learning
+library(caret)
+library(cluster)
+library(factoextra) # For silhouette plot and other clustering related plots
+
+# Dimensionality reduction
+library(stats) # For PCA
+
+# Interactive plots
+library(plotly)
+
+# For ignoring warnings
+options(warn = -1)
+
+# Set base plotting options
+theme_set(theme_minimal())
+
+theme_update(
+  plot.title = element_text(face = "bold", color = "red", size = 14),
+  axis.text = element_text(color = "blue")
+)
+
+```
+
+```{r}
+
+# Load necessary libraries
+library(readr)  # for read_csv
+library(dplyr)  # for data manipulation
+library(lubridate)  # for date handling
+
+# Read the data file
+df_initial <- read_csv('review_added_data.csv', locale = locale(encoding = "ISO-8859-1"),
+                       col_types = cols(CustomerID = col_character(), InvoiceID = col_character()))
+
+# Print dataframe dimensions
+print(paste('Dataframe dimensions:', dim(df_initial)))
+
+# Convert 'InvoiceDate' to datetime format
+df_initial <- df_initial %>%
+  mutate(InvoiceDate = as_datetime(InvoiceDate))
+
+# Get information on column types and number of null values
+tab_info <- data.frame(column_type = sapply(df_initial, class))
+tab_info <- rbind(tab_info, null_values_nb = sapply(df_initial, function(x) sum(is.na(x))))
+tab_info <- rbind(tab_info, null_values_pct = sapply(df_initial, function(x) mean(is.na(x)) * 100))
+
+# Print the table information
+print(tab_info)
+
+# Display the first few lines of the dataframe
+print(head(df_initial))
+
+
+```
+
+```{r}
+  # Load the necessary library
+library(dplyr)
+
+# Drop rows where 'CustomerID' is NA
+df_initial <- df_initial %>%
+  filter(!is.na(CustomerID))
+
+# Print dataframe dimensions
+print(paste('Dataframe dimensions:', dim(df_initial)))
+
+# Get information on column types and number of null values
+tab_info <- data.frame(column_type = sapply(df_initial, class)) %>%
+  tibble::rownames_to_column("index") %>%
+  dplyr::rename(column_type = 2)
+
+# Add null values count
+tab_info <- tab_info %>%
+  bind_rows(summarise_all(df_initial, ~ sum(is.na(.))) %>%
+              tibble::rownames_to_column("index") %>%
+              dplyr::rename(`null values (nb)` = 2))
+
+# Add null values percentage
+tab_info <- tab_info %>%
+  bind_rows(summarise_all(df_initial, ~ mean(is.na(.)) * 100) %>%
+              tibble::rownames_to_column("index") %>%
+              dplyr::rename(`null values (%)` = 2))
+
+# Display the table information
+print(tab_info)
+
+```
+
+
+```{r}
+#install.packages("dplyr")  # Run this only if dplyr isn't already installed
+library(dplyr)
+
+# Count duplicated entries based on specific columns
+number_of_duplicates <- df_initial %>%
+  dplyr::select(InvoiceNo, StockCode, Description, Quantity, InvoiceDate, UnitPrice, CustomerID, Country) %>%
+  duplicated() %>%
+  sum()
+
+# Print the number of duplicate entries
+print(paste("Entrées dupliquées:", number_of_duplicates))
+
+# Remove duplicates based on the same subset of columns
+df_initial <- df_initial %>%
+  distinct(InvoiceNo, StockCode, Description, Quantity, InvoiceDate, UnitPrice, CustomerID, Country, .keep_all = TRUE)
+
+```
+
+```{r}
+
+# Load required library
+library(dplyr)
+
+# Group by CustomerID, InvoiceNo, and Country, count occurrences
+temp <- df_initial %>%
+  group_by(CustomerID, InvoiceNo, Country) %>%
+  summarise(count = n()) %>%
+  ungroup()
+
+# Count unique countries
+countries <- temp %>%
+  count(Country)
+
+# Print the number of unique countries
+cat(paste('Nb. de pays dans le dataframe: ', nrow(countries), '\n'))
+
+
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+```{r}
+
+```
+
