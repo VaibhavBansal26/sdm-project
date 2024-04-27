@@ -158,30 +158,197 @@ cat(paste('Nb. de pays dans le dataframe: ', nrow(countries), '\n'))
 ```
 
 ```{r}
+# install.packages("ggplot2")
+# install.packages("maps")
+# install.packages("ggmap")
+# install.packages("dplyr")
+# 
+ library(ggplot2)
+# library(maps)
+# library(ggmap)
+# library(dplyr)
+# 
+# countries$Country <- tolower(as.character(countries$Country))
+# 
+# world_map <- map_data("world")
+# # Make sure the region names match your country data
+# world_map$region <- tolower(world_map$region)
+
+# Merge your data with the map data
+#world_data <- merge(world_map, countries, by.x = "region", by.y = "Country", all.x = TRUE)
+
+# Create the map
+
+
+# ggplot(data = world_data, aes(x = long, y = lat, group = group, fill = n)) +
+#   geom_polygon(color = "black") +
+#   scale_fill_gradient(low = "lightblue", high = "red", na.value = NA) +
+#   theme_minimal() +
+#   labs(title = "Number of orders per country", fill = "Order nb.") +
+#   theme(legend.position = "right")
+
+
+ggplot(data = world_data, aes(x = long, y = lat, group = group, fill = n)) +
+  geom_polygon(color = "black") +
+  scale_fill_gradient(low = "lightblue", high = "red", na.value = NA) +
+  theme_minimal() +
+  labs(title = "Number of orders per country", fill = "Order nb.") +
+  theme(legend.position = "right")
 
 ```
 
 ```{r}
 
+library(dplyr)
+
+# Calculate the number of unique products, transactions, and customers
+products <- df_initial %>% 
+  pull(StockCode) %>% 
+  n_distinct()
+
+transactions <- df_initial %>% 
+  pull(InvoiceNo) %>% 
+  n_distinct()
+
+customers <- df_initial %>% 
+  pull(CustomerID) %>% 
+  n_distinct()
+
+# Create a data frame
+result <- data.frame(
+  products = products,
+  transactions = transactions,
+  customers = customers
+)
+
+# Set the row names
+rownames(result) <- "quantity"
+
+# Print the result
+print(result)
+
+
 ```
 
 
 
 ```{r}
 
+library(dplyr)
+
+# Group by CustomerID and InvoiceNo, count occurrences of InvoiceDate
+temp <- df_initial %>%
+  group_by(CustomerID, InvoiceNo) %>%
+  summarise(`Number of products` = n()) %>%
+  ungroup()
+
+# Rename the column
+nb_products_per_basket <- temp %>%
+  rename(`Number of products` = `Number of products`)
+
+# Select the first 10 rows and sort by CustomerID
+result <- head(nb_products_per_basket, 10) %>%
+  arrange(CustomerID)
+
+# Print the result
+print(result)
+
+
+
+```
+
+
+```{r}
+# Add a new column 'order_canceled' indicating if 'C' is in the 'InvoiceNo'
+nb_products_per_basket$order_canceled <- as.integer(grepl("C", nb_products_per_basket$InvoiceNo))
+
+# Display the first 5 rows
+head(nb_products_per_basket, 5)
+
+# Calculate the number of canceled orders
+n1 <- sum(nb_products_per_basket$order_canceled)
+
+n2 <- nrow(nb_products_per_basket)
+cat('Number of orders canceled:', n1, '/', n2, '(', sprintf("%.2f", n1/n2*100), '%)\n')
+
+
+```
+
+
+```{r}
+library(dplyr)
+
+# Sort the data frame by CustomerID and select the first 5 rows
+result <- df_initial %>%
+  arrange(CustomerID) %>%
+  head(5)
+
+# Print the result
+print(result)
+
+
+```
+
+```{r}
+
+# Subset the data frame to only include rows where Quantity is less than 0,
+# and select specific columns
+df_check <- df_initial[df_initial$Quantity < 0, c('CustomerID', 'Quantity', 
+                                                   'StockCode', 'Description', 'UnitPrice')]
+
+# Iterate over rows of df_check
+for (index in 1:nrow(df_check)) {
+  col <- df_check[index, ]  # Get the current row
+  
+  # Check if the condition is met
+  if (nrow(df_initial[df_initial$CustomerID == col$CustomerID &
+                      df_initial$Quantity == -col$Quantity &
+                      df_initial$Description == col$Description, ]) == 0) {
+    print(col)
+    cat(rep('-', 15), '>', 'HYPOTHESIS NOT FULFILLED\n')
+    break
+  }
+}
+
+
+```
+```{r}
+
+
+
+```
+
+```{r}
+
+
+
+```
+
+```{r}
+
+
+
 ```
 
 
 ```{r}
 
+
+
+```
+
+
+
+```{r}
+
+
+
 ```
 
 
 ```{r}
 
-```
 
-```{r}
 
 ```
 
