@@ -1,0 +1,404 @@
+# Load necessary libraries
+```{r}
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(DataExplorer)
+library(tidyverse)
+library(cluster)
+library(factoextra)
+library(caret)
+```
+
+```{r}
+custData <- read_csv("review_added_data.csv")
+glimpse(custData)
+dim(custData)
+```
+
+```{r}
+options(repr.plot.width=8, repr.plot.height=3)
+# look for missing values using the DataExplorer package
+plot_missing(custData)
+```
+**Looking at the size of the dataset and the missing value plot, it seems as if we can remove the missing values and still have a good-sized set of data to work on, so let's start by doing that:**
+
+```{r}
+custData <- na.omit(custData)
+dim(custData)
+```
+
+Okay, so we've still got over 400,000 rows of data to work with. One thing that pops out is the InvoiceDate variable. This is a character variable, but we can pull out the data and time information to create two new variables: date and time. We'll also create separate variables for month, year and hour of day.
+
+```{r}
+# separate date and time components of invoice date
+# Ensure InvoiceDate is character
+custData$InvoiceDate <- as.character(custData$InvoiceDate)
+
+# Split InvoiceDate into date and time
+custData$date <- sapply(custData$InvoiceDate, FUN = function(x) {strsplit(x, split = ' ')[[1]][1]})
+custData$time <- sapply(custData$InvoiceDate, FUN = function(x) {strsplit(x, split = ' ')[[1]][2]})
+
+
+```
+
+```{r}
+# create month, year and hour of day variables
+custData$month <- sapply(custData$date, FUN = function(x) {strsplit(x, split = '[/]')[[1]][1]})
+custData$year <- sapply(custData$date, FUN = function(x) {strsplit(x, split = '[/]')[[1]][3]})
+custData$hourOfDay <- sapply(custData$time, FUN = function(x) {strsplit(x, split = '[:]')[[1]][1]})
+```
+
+```{r}
+head(custData, n =5)
+```
+
+Okay, that's pulled out some more useful components from our invoice date column, but let's convert the date variable to the appopriate class so we can do a bit more with it:
+
+```{r}
+custData$date <- as.Date(custData$date, "%m/%d/%Y")
+```
+
+```{r}
+library(lubridate)
+custData$dayOfWeek <- wday(custData$date, label=TRUE)
+```
+
+```{r}
+custData <- custData %>% mutate(lineTotal = Quantity * UnitPrice)
+```
+
+```{r}
+head(custData)
+```
+
+That's given us a good dataframe to start performing some summary analyses. But before we move on to getting involved with product and customer segmentation, we'll look at some of the bigger features of the dataset. First, we'll turn the appropriate variables into factors:
+
+```{r}
+custData$Country <- as.factor(custData$Country)
+custData$month <- as.factor(custData$month)
+custData$year <- as.factor(custData$year)
+levels(custData$year) <- c(2010,2011)
+custData$hourOfDay <- as.factor(custData$hourOfDay)
+custData$dayOfWeek <- as.factor(custData$dayOfWeek)
+```
+That done, we can take a look at some of the 'big picture' aspects of the dataset.
+
+
+```{r}
+custData$InvoiceDate <- as.character(custData$InvoiceDate)
+custData$date <- sapply(custData$InvoiceDate, FUN = function(x) {strsplit(x, split = ' ')[[1]][1]})
+
+# Convert date to Date type and handle invalid dates
+custData$date <- ymd(custData$date)
+
+# Check for any NA values in the date column
+if (any(is.na(custData$date))) {
+  cat("There are invalid dates in the data. Rows with invalid dates will be removed.\n")
+  print(custData[is.na(custData$date), ])
+  
+  # Remove rows with NA dates
+  custData <- custData %>% filter(!is.na(date))
+}
+
+# Summarize revenue by date
+revenue_by_date <- custData %>%
+  group_by(date) %>%
+  summarise(revenue = sum(lineTotal, na.rm = TRUE))
+
+# Plot the data
+options(repr.plot.width=8, repr.plot.height=3)
+ggplot(revenue_by_date, aes(x = date, y = revenue)) +
+  geom_line() +
+  geom_smooth(method = 'auto', se = FALSE) +
+  labs(x = 'Date', y = 'Revenue (£)', title = 'Revenue by Date')
+```
+It appears as though sales are trending up, so that's a good sign, but that doesn't really generate any actionable insight, so let's dive into the data a bit farther...
+
+Day of week analysis
+Using the lubridate package, we assigned a day of the week to each date in our dataset. I don't know about you, but I'm certainly in a different frame of mind as the week goes on. Are people more likely to spend as the week goes on? Browsing to pass a Sunday afternoon? Procrastinating on that Friday afternoon at work? Cheering yourself up after a difficult Monday?
+
+
+
+```{r}
+custData$InvoiceDate <- as.character(custData$InvoiceDate)
+custData$date <- sapply(custData$InvoiceDate, FUN = function(x) {strsplit(x, split = ' ')[[1]][1]})
+custData$date <- ymd(custData$date)
+
+# Check for any invalid dates and remove rows with NA dates
+if (any(is.na(custData$date))) {
+  cat("There are invalid dates in the data. Rows with invalid dates will be removed.\n")
+  print(custData[is.na(custData$date), ])
+  custData <- custData %>% filter(!is.na(date))
+}
+
+# Extract the day of the week
+custData$dayOfWeek <- wday(custData$date, label = TRUE, abbr = FALSE)
+
+# Summarize revenue by day of the week
+revenue_by_dayOfWeek <- custData %>%
+  group_by(dayOfWeek) %>%
+  summarise(revenue = sum(lineTotal, na.rm = TRUE))
+
+# Plot the data
+options(repr.plot.width=8, repr.plot.height=3)
+ggplot(revenue_by_dayOfWeek, aes(x = dayOfWeek, y = revenue)) +
+  geom_col() +
+  labs(x = 'Day of Week', y = 'Revenue (£)', title = 'Revenue by Day of Week')
+```
+
+```{r}
+weekdaySummary <- custData %>%
+  group_by(date, dayOfWeek) %>%
+  summarise(revenue = sum(lineTotal), transactions = n_distinct(InvoiceNo)) %>%
+  mutate(aveOrdVal = (round((revenue / transactions),2))) %>%
+  ungroup()
+
+head(weekdaySummary, n = 10)
+```
+
+```{r}
+ggplot(weekdaySummary, aes(x = dayOfWeek, y = revenue)) + geom_boxplot() + labs(x = 'Day of the Week', y = 'Revenue', title = 'Revenue by Day of the Week')
+ggplot(weekdaySummary, aes(x = dayOfWeek, y = transactions)) + geom_boxplot() + labs(x = 'Day of the Week', y = 'Number of Daily Transactions', title = 'Number of Transactions by Day of the Week')
+ggplot(weekdaySummary, aes(x = dayOfWeek, y = aveOrdVal)) + geom_boxplot() + labs(x = 'Day of the Week', y = 'Average Order Value', title = 'Average Order Value by Day of the Week')
+```
+Eye-balling the figures, it looks as though there are differences in the amount of revenue on each day of the week, and that this difference is driven by a difference in the number of transactions, rather than the average order value. Let's plot the data as a density plot to get a better feel for how these data are distributed.
+```{r}
+ggplot(weekdaySummary, aes(transactions, fill = dayOfWeek)) + geom_density(alpha = 0.2)
+```
+
+```{r}
+kruskal.test(transactions ~ dayOfWeek, data = weekdaySummary)
+```
+Looks like a significant difference there, that's quite a p-value we've got. Using the kruskal function from the agricolae package, we can look to see which days are significantly different from the others:
+```{r}
+library(agricolae)
+kruskal(weekdaySummary$transactions, weekdaySummary$dayOfWeek, console = TRUE)
+```
+By looking at our data at the level of weekday, we can see that there are statistically significant differences in the number of transactions that take place on different days of the week, with Sunday having the lowest number of transactions, and Thursday the highest. As the average order value remains relatively consistent, this translates to differences in revenue.
+
+Given the low number of transactions on a Sunday and a high number on a Thursday, we could make recommendations around our digital advertising spend. Should we spend less on a Sunday and more on a Thursday, given that we know we already have more transactions, which could suggest people are more ready to buy on Thursdays? Possible, but without knowing other key metrics, it might be a bit hasty to say.
+
+While this data does reveal insight, in order to be truly actionable, we would want to combine this with more information. In particular, combining these data with web analytics data would be hugely valuable. How do these data correlate with web traffic figures? Does the conversion rate change or is there just more traffic on a Thursday and less on a Sunday?
+
+What about out current advertising spend? Is the company already spending less on a Sunday and more on a Thursday and that is behind our observed differences? What about buying cycles? How long does it take for a customer to go from thinking about buying something to buying it? If it's usually a couple of days, should we advertise more on a Tuesday? Should we continue with an increased spend on a Thursday, when they're ready to buy, and let our competitors pay for the clicks while the customer is in the 'research' stage of the process?
+
+These types of questions illustrate the importance of understanding the vertical, the business model and other factors and decisions which underpin the dataset, rather than just looking at the dataset in isolation.
+
+Hour of day analysis
+In a similar way to our day-of-the-week analysis, is there insight to be had from looking at the hours of the day?
+```{r}
+custData %>%
+  group_by(hourOfDay) %>%
+  summarise(revenue = sum(lineTotal)) %>%
+  ggplot(aes(x = hourOfDay, y = revenue)) + geom_col() + labs(x = 'Hour Of Day', y = 'Revenue (£)', title = 'Revenue by Hour Of Day')
+
+custData %>%
+  group_by(hourOfDay) %>%
+  summarise(transactions = n_distinct(InvoiceNo)) %>%
+  ggplot(aes(x = hourOfDay, y = transactions)) + geom_col() + labs(x = 'Hour Of Day', y = 'Number of Transactions', title = 'Transactions by Hour Of Day')
+```
+
+It certainly seems as though there is something going on here. We have more transactions and more revenue in the morning to mid-afternoon, tailing of quickly towards the early evening. There are also some hours missing, so that's something else that would also need looking into. Are there genuinely no transactions during these times, or is something else at work?
+
+As the type of analysis we would do here is similar to what we did with the dayOfWeek, we'll leave this for now, knowing that there is a daily trend, and there is likely some actionable insight we could draw if we had some more information.
+
+Country summary
+Our e-commerce retailer ships to a number of countries around the world. Let's drill into the data from that perspective and see what we can find out.
+
+```{r}
+countrySummary <- custData %>%
+  group_by(Country) %>%
+  summarise(revenue = sum(lineTotal), transactions = n_distinct(InvoiceNo)) %>%
+  mutate(aveOrdVal = (round((revenue / transactions),2))) %>%
+  ungroup() %>%
+  arrange(desc(revenue))
+
+head(countrySummary, n = 10)
+unique(countrySummary$Country)
+
+```
+
+```{r}
+countryCustSummary <- custData %>%
+  group_by(Country) %>%
+  summarise(revenue = sum(lineTotal), customers = n_distinct(CustomerID)) %>%
+  mutate(aveCustVal = (round((revenue / customers),2))) %>%
+  ungroup() %>%
+  arrange(desc(revenue))
+
+head(countryCustSummary, n = 10)
+```
+
+Plenty to see there, ceratinly. A lot of different countries contributing a good amount of revenue. As it seems that refunds and/or cancellations are present in the dataset as revenue with a negative value (not shown in this notebook, but you can dive in yourself), we can assume that the revenue figures here are net of refunds; something that it is important to consider when shipping goods overseas. However, additional information on the costs incurred dealing with these refunds would allow us to make more appropriate recommendations.
+
+Let's begin by looking at the top five countries in terms of revenue contribution. We'll exclude the UK as we know that this is a UK retailer, so improving UK performance will undoubtedly already be on the radar. Looking at the top five non-UK by revenue, the lowest number of transactions is 69 (Australia), which, given the time period of the dataset, is still a regular number of transactions, so the inclusion of these countries seems justified.
+
+```{r}
+topFiveCountries <- custData %>%
+  filter(Country == 'Netherlands' | Country == 'EIRE' | Country == 'Germany' | Country == 'France' | Country == 'Australia')
+```
+
+```{r}
+topFiveCountrySummary <- topFiveCountries %>%
+  group_by(Country, date) %>%
+  summarise(revenue = sum(lineTotal), transactions = n_distinct(InvoiceNo), customers = n_distinct(CustomerID)) %>%
+  mutate(aveOrdVal = (round((revenue / transactions),2))) %>%
+  ungroup() %>%
+  arrange(desc(revenue))
+
+head(topFiveCountrySummary)
+```
+
+```{r}
+ggplot(topFiveCountrySummary, aes(x = Country, y = revenue)) + geom_col() + labs(x = ' Country', y = 'Revenue (£)', title = 'Revenue by Country')
+ggplot(topFiveCountrySummary, aes(x = date, y = revenue, colour = Country)) + geom_smooth(method = 'auto', se = FALSE) + labs(x = ' Country', y = 'Revenue (£)', title = 'Revenue by Country over Time')
+ggplot(topFiveCountrySummary, aes(x = Country, y = aveOrdVal)) + geom_boxplot() + labs(x = ' Country', y = 'Average Order Value (£)', title = 'Average Order Value by Country') + scale_y_log10()
+ggplot(topFiveCountrySummary, aes(x = Country, y = transactions)) + geom_boxplot() + labs(x = ' Country', y = 'Transactions', title = 'Number of Daily Transactions by Country')
+```
+
+These simple analyses show that there are opportunities. Revenue in EIRE seems to be driven by 3 customers, who buy regularly and have a good average order value, but EIRE revenue has been declining recently. Given the small number of customers and high revenue, a bespoke email or promotion to these customers may drive loyalty and get them buying again.
+
+The Netherlands has also been a significant source of revenue, but another which has been declining in the last few months of the dataset. Further research into this (marketing campaign activity and web analytics data) may provide further insight into why this may be the case, but it does appear that, as customers in the Netherlands have shown a willingness to purchase in the past, the country represents a good opportunity to market to to continue to build a loyal customer base.
+
+France and Germany represent significant opportunities. Revenue from these countries has been rising, and the number of daily transactions is [relatively] strong. Marketing campaigns which aim to improve this while increasing average transaction values may be of significant benefit.
+
+
+Customer segmentation¶
+When it comes to marketing, being able to segment your customers so that you can market appropriate products and offers to them is a quick win. There is little point in sending a potential student who has been browsing nursing courses on your university site an email espousing the USPs of your fine arts courses.
+
+In this dataset, we have the customer ID, which we can use to start looking for differences between customers. While we have product IDs and descriptions, we are lacking in a simple product category ID. There is information we can extract from other fields, but that may be beyond the scope of this kernel, which is already getting a little long!
+
+Let's look at our customer data from the point of view of loyalty. If we can identify a group of customers who shop regularly, we can target this group with dedicated marketing campaigns which may reinforce their loyalty, and perhaps lead to them becoming brand ambassodors on social media.
+
+```{r}
+custSummary <- custData %>%
+  group_by(CustomerID) %>%
+  summarise(revenue = sum(lineTotal), transactions = n_distinct(InvoiceNo)) %>%
+  mutate(aveOrdVal = (round((revenue / transactions),2))) %>%
+  ungroup() %>%
+  arrange(desc(revenue))
+
+head(custSummary, n = 10)
+```
+
+
+```{r}
+ggplot(custSummary, aes(revenue)) + geom_histogram(binwidth = 10) + labs(x = 'Revenue', y = 'Count of Customers', title = 'Histogram of Revenue per customer')
+ggplot(custSummary, aes(revenue)) + geom_histogram() + scale_x_log10() + labs(x = 'Revenue', y = 'Count of Customers', title = 'Histogram of Revenue per customer (Log Scale)')
+ggplot(custSummary, aes(transactions)) + geom_histogram() + scale_x_log10() + labs(x = 'Number of Transactions', y = 'Count of Customers', title = 'Histogram of Transactions per customer')
+```
+
+```{r}
+custSummaryB <- custData %>%
+  group_by(CustomerID, InvoiceNo) %>%
+  summarise(revenue = sum(lineTotal), transactions = n_distinct(InvoiceNo)) %>%
+  mutate(aveOrdVal = (round((revenue / transactions),2))) %>%
+  ungroup() %>%
+  arrange(revenue) %>%
+  mutate(cumsum=cumsum(revenue))
+
+head(custSummaryB, n =10)
+```
+
+```{r}
+custData %>% filter(CustomerID == 16446)
+```
+
+It looks like, after buying a scrubbing brush and a pastry brush, this customer returned seven months' later, added 80,995 Paper Craft Little Birdies to their cart and checked out with an order for £168,470. I don't know about you, but I think my card prodivder would get a bit upset if I tried to make that sort of online purchase. The little birdies were refunded 12 minutes later.
+
+Looking at the rest of the cumulative data, it seems as though there are quite a lot of high-quantity sales and refunds. Before continuing with this analysis in a real-world situation, it would be advantagous to speak with the e-commerce department to get some insight into the business, the website and checkout design and the types of customers. Are there a number of B2B customers who place very large orders for example?
+
+However, for the purposes of this kernel, we'll accept that we are aware of these transactions, and continue. It does look as though many of these large transactions are refunded, so if we sum the revenue, we should be working with some reasonable numbers.
+
+```{r}
+custSummaryB <- custData %>%
+  group_by(InvoiceNo, CustomerID, Country, date, month, year, hourOfDay, dayOfWeek) %>%
+  summarise(orderVal = sum(lineTotal)) %>%
+  mutate(recent = Sys.Date() - date) %>%
+  ungroup()
+
+custSummaryB$recent <- as.character(custSummaryB$recent)
+custSummaryB$recentDays <- sapply(custSummaryB$recent, FUN = function(x) {strsplit(x, split = '[ ]')[[1]][1]})
+custSummaryB$recentDays <- as.integer(custSummaryB$recentDays)
+
+head(custSummaryB, n = 5)
+```
+
+```{r}
+customerBreakdown <- custSummaryB %>%
+  group_by(CustomerID, Country) %>%
+  summarise(orders = n_distinct(InvoiceNo), revenue = sum(orderVal), meanRevenue = round(mean(orderVal), 2), medianRevenue = median(orderVal), 
+            mostDay = names(which.max(table(dayOfWeek))), mostHour = names(which.max(table(hourOfDay))),
+           recency = min(recentDays))%>%
+  ungroup()
+
+head(customerBreakdown)
+```
+
+```{r}
+custBreakSum <- customerBreakdown %>%
+  filter(orders > 1, revenue > 50)
+
+head(custBreakSum)
+dim(custBreakSum)
+```
+
+```{r}
+library(heatmaply)
+custMat <- custBreakSum %>%
+  select(recency, revenue, meanRevenue, medianRevenue, orders) %>%
+  as.matrix()
+
+rownames(custMat) <- custBreakSum$CustomerID
+
+head(custMat)
+class(custMat)
+```
+
+```{r}
+options(repr.plot.width=7, repr.plot.height=6)
+heatmap(scale(custMat), cexCol = 0.7)
+```
+
+Looking at the heatmap, we can see that the total revenue clusters with the number of orders as we would expect, that the mean and median order values cluster together, again, as expected, and that the order recency sits in its own group. However, the main point of interest here is how the rows (customers) cluster.
+
+By analysing the data in this way, we can uncover groups of customers that behavve in similar ways. This level of customer segmentation is useful in marketing to these groups of customers appropriately. A marketing campaign that works for a group of customers that places low value orders frequently may not be appropriate for customers who place sporadic, high value orders for example.
+
+Summary and conclusions
+This dataset offers myriad opportunities for practising skills in e-commerce sales analysis and customer segmentation. There are some other variables it would be nice to have in the dataset such as categories for the products. Additionally, before performing analysis it would be important to talk with the e-commerce team to understand the business and its customers and its strategic and tactical objectives. Knowing what the business wants to achieve, and what questions it has are central to performing a relevant analysis that generates actionable insight.
+
+Of course, there is still a lot more that we can do with this dataset. We haven't looked at the frequency of purchases, and we've not looked at the products. While a simple 'product category' variable would have been very useful. We may well be able to extract some additional features from the description field with some text analysis, and we could look at using the stock code, perhaps using PCA to reduce the dimensionality, but that's perhaps for another notebook.
+
+```{r}
+# Choosing the number of clusters k
+custData[is.na(custData)] <- lapply(custData[is.na(custData)], function(x) mean(x, na.rm = TRUE))
+
+# Encode categorical variables (e.g., Country, Gender, PaymentMethod)
+custData$Country <- as.numeric(factor(custData$Country))
+custData$Gender <- as.numeric(factor(custData$Gender))
+custData$PaymentMethod <- as.numeric(factor(custData$PaymentMethod))
+
+features <- custData %>%
+  select(Age, UnitPrice, Quantity, Country, Gender, PaymentMethod)
+
+# Standardize the data
+preProc <- preProcess(features, method = c("center", "scale"))
+features_scaled <- predict(preProc, features)
+set.seed(42)
+k <- 5  # You can experiment with different values of k
+
+# Apply K-Means
+kmeans_result <- kmeans(features_scaled, centers = k, nstart = 25)
+
+# Adding cluster labels to the original data
+data$Cluster <- kmeans_result$cluster
+
+# Save the clustered data to a new CSV file
+
+
+# Visualize the clusters
+fviz_cluster(kmeans_result, data = features_scaled, geom = "point", ellipse.type = "norm") +
+  ggtitle("Customer Segments")
+
+```
