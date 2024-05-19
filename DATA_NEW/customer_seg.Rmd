@@ -1,4 +1,15 @@
-# Load necessary libraries
+##GROUP 14 - CUSTOMER SEGMENTATION AND SALES ANALYSIS WITH PRODUCT RECOMMENDATION
+
+TEAM MEMBERS
+
+1. ATUL SHARMA
+
+2. MOUNIKA REDDY KATIKAM VENKATA
+
+3. VAIBHAV BANSAL
+
+4. DEVENDRA RANA
+
 ```{r}
 library(readr)
 library(dplyr)
@@ -371,34 +382,31 @@ This dataset offers myriad opportunities for practising skills in e-commerce sal
 Of course, there is still a lot more that we can do with this dataset. We haven't looked at the frequency of purchases, and we've not looked at the products. While a simple 'product category' variable would have been very useful. We may well be able to extract some additional features from the description field with some text analysis, and we could look at using the stock code, perhaps using PCA to reduce the dimensionality, but that's perhaps for another notebook.
 
 ```{r}
-# Choosing the number of clusters k
-custData[is.na(custData)] <- lapply(custData[is.na(custData)], function(x) mean(x, na.rm = TRUE))
+library(factoextra)
+custData_sample <- custData %>% sample_n(5000)
+clustering_data <- custData_sample %>% 
+  select(Quantity, UnitPrice, Age, Previous_Purchases, lineTotal) # Modify as needed
 
-# Encode categorical variables (e.g., Country, Gender, PaymentMethod)
-custData$Country <- as.numeric(factor(custData$Country))
-custData$Gender <- as.numeric(factor(custData$Gender))
-custData$PaymentMethod <- as.numeric(factor(custData$PaymentMethod))
+# Handle missing values if any
+clustering_data <- na.omit(clustering_data)
 
-features <- custData %>%
-  select(Age, UnitPrice, Quantity, Country, Gender, PaymentMethod)
+# Scale the data
+clustering_data_scaled <- scale(clustering_data)
 
-# Standardize the data
-preProc <- preProcess(features, method = c("center", "scale"))
-features_scaled <- predict(preProc, features)
-set.seed(42)
-k <- 5  # You can experiment with different values of k
+# Determine the optimal number of clusters using the Elbow method
+fviz_nbclust(clustering_data_scaled, kmeans, method = "wss")
 
-# Apply K-Means
-kmeans_result <- kmeans(features_scaled, centers = k, nstart = 25)
+# Apply K-means clustering with the chosen number of clusters
+set.seed(123) # For reproducibility
+kmeans_result <- kmeans(clustering_data_scaled, centers = 6, nstart = 25)
 
-# Adding cluster labels to the original data
-data$Cluster <- kmeans_result$cluster
+# Add cluster results to the original data
+custData_sample$Cluster <- kmeans_result$cluster
 
-# Save the clustered data to a new CSV file
+# Visualize the clustering results using PCA
+fviz_cluster(kmeans_result, data = clustering_data_scaled)
 
-
-# Visualize the clusters
-fviz_cluster(kmeans_result, data = features_scaled, geom = "point", ellipse.type = "norm") +
-  ggtitle("Customer Segments")
+# Or use a pair plot if the number of features is small
+pairs(clustering_data, col = custData_sample$Cluster)
 
 ```
